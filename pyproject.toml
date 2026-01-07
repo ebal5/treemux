@@ -53,6 +53,7 @@ packages = ["src/treemux"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+    "pytest-mock>=3.14.0",
     "ruff>=0.4.0",
     "mypy>=1.10.0",
     "pre-commit>=3.7.0",
@@ -100,6 +101,10 @@ addopts = [
     "-v",
     "--tb=short",
     "--strict-markers",
+]
+markers = [
+    "integration: marks tests as integration tests requiring Docker",
+    "slow: marks tests as slow running",
 ]
 
 [tool.coverage.run]
