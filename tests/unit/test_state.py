@@ -60,6 +60,57 @@ class TestLoadState:
         with pytest.raises(json.JSONDecodeError):
             load_state(project_with_treemux_dir)
 
+    def test_load_state_truncated_json(self, project_with_treemux_dir: Path):
+        """途中で切れたJSONはエラーを発生"""
+        state_path = project_with_treemux_dir / ".treemux" / "state.json"
+        # 正常なJSONの途中で切断
+        state_path.write_text('{"instances": {"test": {"index": 0, "started_at":')
+
+        with pytest.raises(json.JSONDecodeError):
+            load_state(project_with_treemux_dir)
+
+    def test_load_state_missing_required_fields(self, project_with_treemux_dir: Path):
+        """必須フィールドが欠けたJSONはPydantic ValidationErrorを発生"""
+        from pydantic import ValidationError
+
+        state_path = project_with_treemux_dir / ".treemux" / "state.json"
+        # indexフィールドが欠けている
+        state_path.write_text(
+            '{"instances": {"test": {"started_at": "2024-01-01T00:00:00", "ports": {}}}}'
+        )
+
+        with pytest.raises(ValidationError):
+            load_state(project_with_treemux_dir)
+
+    def test_load_state_wrong_type_field(self, project_with_treemux_dir: Path):
+        """フィールドの型が不正なJSONはPydantic ValidationErrorを発生"""
+        from pydantic import ValidationError
+
+        state_path = project_with_treemux_dir / ".treemux" / "state.json"
+        # indexが文字列（数値であるべき）
+        state_path.write_text(
+            '{"instances": {"test": {"index": "not-a-number", '
+            '"started_at": "2024-01-01T00:00:00", "ports": {}}}}'
+        )
+
+        with pytest.raises(ValidationError):
+            load_state(project_with_treemux_dir)
+
+    def test_load_state_extra_fields_are_ignored(self, project_with_treemux_dir: Path):
+        """余分なフィールドは無視される（破損ではない）"""
+        state_path = project_with_treemux_dir / ".treemux" / "state.json"
+        # 余分なフィールドを含むJSON
+        state_path.write_text(
+            '{"instances": {"test": {"index": 0, '
+            '"started_at": "2024-01-01T00:00:00+00:00", "ports": {}, '
+            '"extra_field": "should be ignored", "another_extra": 123}}, '
+            '"unknown_key": "also ignored"}'
+        )
+
+        state = load_state(project_with_treemux_dir)
+        assert "test" in state.instances
+        assert state.instances["test"].index == 0
+
 
 class TestSaveState:
     """Tests for save_state function."""
@@ -188,6 +239,41 @@ class TestRemoveInstance:
         """空の状態からの削除はNoneを返す"""
         removed = remove_instance(project_root, "any-name")
         assert removed is None
+
+    def test_remove_all_instances_leaves_empty_state(self, project_with_state: Path):
+        """全インスタンスを削除すると空の状態になる"""
+        # project_with_stateにはfeature-aとfeature-bがある
+        state_before = load_state(project_with_state)
+        assert len(state_before.instances) == 2
+
+        # 全インスタンスを削除
+        removed_a = remove_instance(project_with_state, "feature-a")
+        removed_b = remove_instance(project_with_state, "feature-b")
+
+        assert removed_a is not None
+        assert removed_b is not None
+
+        # 状態ファイルを読み込んで空であることを確認
+        state_after = load_state(project_with_state)
+        assert state_after.instances == {}
+        assert state_after.get_used_indices() == set()
+        assert state_after.get_next_available_index() == 0
+
+    def test_state_file_persists_after_all_removed(self, project_with_state: Path):
+        """全インスタンス削除後もstate.jsonファイルは存在する"""
+        state_path = project_with_state / ".treemux" / "state.json"
+
+        # 全インスタンスを削除
+        remove_instance(project_with_state, "feature-a")
+        remove_instance(project_with_state, "feature-b")
+
+        # ファイルが存在することを確認
+        assert state_path.exists()
+
+        # 内容が有効な空の状態であることを確認
+        with state_path.open() as f:
+            data = json.load(f)
+        assert data["instances"] == {}
 
 
 class TestGetInstance:
