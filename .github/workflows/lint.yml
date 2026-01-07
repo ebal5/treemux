@@ -39,7 +39,7 @@ jobs:
             ./bin/reviewdog -f=rdjson \
               -name="ruff-lint" \
               -reporter=github-pr-review \
-              -fail-level=error
+              -fail-level=warning
 
   ruff-format:
     name: Ruff Format
@@ -68,5 +68,5 @@ jobs:
             ./bin/reviewdog -f=diff \
               -name="ruff-format" \
               -reporter=github-pr-review \
-              -fail-level=error \
+              -fail-level=warning \
               -f.diff.strip=1
