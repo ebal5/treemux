@@ -2,6 +2,17 @@
 
 web + api + db の典型的な3層構成サンプルです。
 
+## 前提条件
+
+- Docker Engine 20.10+
+- Docker Compose v2+
+- uv（Python環境）
+
+```bash
+# バージョン確認
+docker compose version
+```
+
 ## サービス構成
 
 | サービス | イメージ | 説明 |
@@ -56,6 +67,25 @@ curl http://localhost:8000/api/get
 ```bash
 uv run treemux down -v
 ```
+
+### 5. クリーンアップ
+
+サンプル終了後、コピーしたファイルを削除：
+
+```bash
+# プロジェクトルートで実行
+rm -rf .treemux docker-compose.yml nginx.conf docker-compose.override.treemux.yml
+```
+
+## DB接続情報
+
+| 項目 | 値 |
+|------|-----|
+| Host | localhost（コンテナ内からは `db`） |
+| Port | 5432 |
+| User | treemux |
+| Password | treemux |
+| Database | treemux |
 
 ## ポート割り当て
 
