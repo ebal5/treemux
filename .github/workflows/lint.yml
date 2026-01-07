@@ -42,7 +42,7 @@ jobs:
               -fail-level=warning
 
   ruff-format:
-    name: Ruff Format
+    name: Ruff Format Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

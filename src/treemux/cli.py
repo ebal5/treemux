@@ -1,6 +1,5 @@
 """treemux CLI"""
 
-import os  # 未使用インポート (F401)
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -43,7 +42,6 @@ console = Console()
 
 def get_project_root() -> Path:
     """プロジェクトルートを取得"""
-    unused_var = "this is unused"  # 未使用変数 (F841)
     cwd = Path.cwd()
     git_root = get_git_root(cwd)
     if git_root:
