@@ -7,17 +7,13 @@ from unittest.mock import patch
 import pytest
 from typer.testing import CliRunner
 
+from treemux import __version__
 from treemux.cli import app
 from treemux.config import save_config
 from treemux.models import InstanceInfo, TreemuxConfig, TreemuxState
 from treemux.state import save_state
 
-
-@pytest.fixture
-def mock_cwd(tmp_path: Path, monkeypatch):
-    """カレントワーキングディレクトリをモック"""
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
+pytestmark = pytest.mark.integration
 
 
 class TestVersionCommand:
@@ -29,7 +25,7 @@ class TestVersionCommand:
 
         assert result.exit_code == 0
         assert "treemux" in result.stdout
-        assert "0.1.0" in result.stdout
+        assert __version__ in result.stdout
 
 
 class TestInitCommand:
@@ -357,5 +353,4 @@ class TestPlaywrightCommand:
         result = cli_runner.invoke(app, ["playwright", "test"])
 
         assert result.exit_code == 0
-        assert "export" in result.stdout.lower() or "WEB_URL" in result.stdout
-        assert "8000" in result.stdout
+        assert "export WEB_URL=http://localhost:8000" in result.stdout
