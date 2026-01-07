@@ -202,6 +202,61 @@ class TestTreemuxConfig:
         config = TreemuxConfig(project_name="test")
         assert config.subdomain.enabled is False
 
+    # --- project_name validation tests ---
+
+    def test_valid_project_name_alphanumeric(self):
+        """英数字のみのproject_nameは有効"""
+        config = TreemuxConfig(project_name="myproject123")
+        assert config.project_name == "myproject123"
+
+    def test_valid_project_name_with_hyphen(self):
+        """ハイフンを含むproject_nameは有効"""
+        config = TreemuxConfig(project_name="my-project")
+        assert config.project_name == "my-project"
+
+    def test_valid_project_name_with_underscore(self):
+        """アンダースコアを含むproject_nameは有効"""
+        config = TreemuxConfig(project_name="my_project")
+        assert config.project_name == "my_project"
+
+    def test_valid_project_name_mixed(self):
+        """ハイフンとアンダースコアを混在させたproject_nameは有効"""
+        config = TreemuxConfig(project_name="my-project_123")
+        assert config.project_name == "my-project_123"
+
+    def test_valid_project_name_starts_with_number(self):
+        """数字開始のproject_nameは有効"""
+        config = TreemuxConfig(project_name="123test")
+        assert config.project_name == "123test"
+
+    @pytest.mark.parametrize(
+        "invalid_name,description",
+        [
+            ("test/../../../etc", "パストラバーサル（../）"),
+            ("test/path", "スラッシュ"),
+            ("test\\path", "バックスラッシュ"),
+            ("test;rm -rf /", "セミコロン（コマンドインジェクション）"),
+            ("test|cat /etc/passwd", "パイプ（コマンドインジェクション）"),
+            ("test$HOME", "ドル記号（変数展開）"),
+            ("test`id`", "バッククォート（コマンド置換）"),
+            ("test&background", "アンパサンド（バックグラウンド実行）"),
+            ("test>output", "リダイレクト（>）"),
+            ("test<input", "リダイレクト（<）"),
+            ("test name", "スペース"),
+            ("-test", "ハイフン開始"),
+            ("_test", "アンダースコア開始"),
+        ],
+    )
+    def test_dangerous_project_name_rejected(
+        self,
+        invalid_name: str,
+        description: str,  # noqa: ARG002
+    ):
+        """危険文字を含むproject_nameは拒否される: {description}"""
+        with pytest.raises(ValidationError) as exc_info:
+            TreemuxConfig(project_name=invalid_name)
+        assert "invalid characters" in str(exc_info.value)
+
 
 class TestComposeResult:
     """Tests for ComposeResult model."""

@@ -201,3 +201,106 @@ class TestCheckPortsAvailability:
         """空のports dict"""
         result = check_ports_availability({})
         assert result == {}
+
+
+class TestPortRangeCollision:
+    """Tests for port range collision detection.
+
+    ポート範囲の重複による衝突可能性を検証するテスト群。
+    サービス間でbase_host_portの差が10未満の場合、異なるindexで衝突が発生し得る。
+    """
+
+    def test_overlapping_port_ranges_cause_cross_instance_collision(self):
+        """サービス間でポート範囲が重複すると、異なるインスタンスで衝突する可能性がある
+
+        例: サービスA base=8000, サービスB base=8005 の場合
+        - インスタンス1 (index=5): A=8005, B=8010
+        - インスタンス2 (index=0): A=8000, B=8005
+        → インスタンス1のAとインスタンス2のBが8005で衝突
+        """
+        # 重複するポート範囲を持つ設定
+        config = TreemuxConfig(
+            project_name="test",
+            services={
+                "service_a": ServiceConfig(container_port=3000, base_host_port=8000),
+                "service_b": ServiceConfig(container_port=3001, base_host_port=8005),
+            },
+        )
+
+        # index=5でのポート割り当て
+        ports_index5 = allocate_ports(config, index=5)
+        assert ports_index5["service_a"] == 8005  # 8000 + 5
+        assert ports_index5["service_b"] == 8010  # 8005 + 5
+
+        # index=0でのポート割り当て
+        ports_index0 = allocate_ports(config, index=0)
+        assert ports_index0["service_a"] == 8000  # 8000 + 0
+        assert ports_index0["service_b"] == 8005  # 8005 + 0
+
+        # 衝突検出: index=5のservice_aとindex=0のservice_bが同じポート
+        collision_port = ports_index5["service_a"]
+        assert collision_port == ports_index0["service_b"]  # 両方8005
+
+    def test_safe_port_spacing_prevents_collision(self):
+        """十分なポート間隔（10以上）があれば衝突しない"""
+        # 十分な間隔を持つ設定（差が10以上）
+        config = TreemuxConfig(
+            project_name="test",
+            services={
+                "service_a": ServiceConfig(container_port=3000, base_host_port=8000),
+                "service_b": ServiceConfig(container_port=3001, base_host_port=8010),
+            },
+        )
+
+        # 全インデックス（0-9）で割り当てられるポートを収集
+        all_ports_a = {allocate_ports(config, i)["service_a"] for i in range(10)}
+        all_ports_b = {allocate_ports(config, i)["service_b"] for i in range(10)}
+
+        # サービスAのポート範囲: 8000-8009
+        assert all_ports_a == set(range(8000, 8010))
+        # サービスBのポート範囲: 8010-8019
+        assert all_ports_b == set(range(8010, 8020))
+
+        # 重複がないことを確認
+        assert all_ports_a.isdisjoint(all_ports_b)
+
+    def test_minimum_safe_port_gap_is_ten(self):
+        """最小安全間隔は10（MAX_INDEX + 1）
+
+        base_host_portの差が10未満だと、範囲が重複する可能性がある。
+        """
+        # 境界値: 差が9（危険）
+        unsafe_gap = 9
+        config_unsafe = TreemuxConfig(
+            project_name="test",
+            services={
+                "a": ServiceConfig(container_port=3000, base_host_port=8000),
+                "b": ServiceConfig(
+                    container_port=3001, base_host_port=8000 + unsafe_gap
+                ),
+            },
+        )
+
+        ports_a_unsafe = {allocate_ports(config_unsafe, i)["a"] for i in range(10)}
+        ports_b_unsafe = {allocate_ports(config_unsafe, i)["b"] for i in range(10)}
+
+        # 差が9だと1ポート重複（8009が両方に含まれる）
+        overlap = ports_a_unsafe & ports_b_unsafe
+        assert len(overlap) == 1
+        assert 8009 in overlap  # 8000+9 == 8009, 8009+0 == 8009
+
+        # 境界値: 差が10（安全）
+        safe_gap = 10
+        config_safe = TreemuxConfig(
+            project_name="test",
+            services={
+                "a": ServiceConfig(container_port=3000, base_host_port=8000),
+                "b": ServiceConfig(container_port=3001, base_host_port=8000 + safe_gap),
+            },
+        )
+
+        ports_a_safe = {allocate_ports(config_safe, i)["a"] for i in range(10)}
+        ports_b_safe = {allocate_ports(config_safe, i)["b"] for i in range(10)}
+
+        # 差が10なら重複なし
+        assert ports_a_safe.isdisjoint(ports_b_safe)

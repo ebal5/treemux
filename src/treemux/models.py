@@ -1,9 +1,13 @@
 """設定・状態のデータモデル定義"""
 
+import re
 from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
+
+# プロジェクト名の許可パターン（英数字、ハイフン、アンダースコアのみ）
+PROJECT_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 
 # 最大インデックス数（0-9の10個）
 MAX_INDEX = 9
@@ -44,6 +48,19 @@ class TreemuxConfig(BaseModel):
         default_factory=dict, description="サービス設定"
     )
     subdomain: SubdomainConfig = Field(default_factory=SubdomainConfig)
+
+    @field_validator("project_name")
+    @classmethod
+    def validate_project_name(cls, v: str) -> str:
+        """プロジェクト名を検証（パストラバーサル・シェルインジェクション防止）"""
+        if not PROJECT_NAME_PATTERN.match(v):
+            msg = (
+                f"project_name '{v}' contains invalid characters. "
+                "Only alphanumeric, hyphen, and underscore allowed "
+                "(must start with alphanumeric)"
+            )
+            raise ValueError(msg)
+        return v
 
 
 class InstanceInfo(BaseModel):
