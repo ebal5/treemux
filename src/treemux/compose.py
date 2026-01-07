@@ -23,7 +23,9 @@ def generate_override_content(config: TreemuxConfig) -> dict:
     services: dict[str, dict] = {}
 
     for service_name, svc in config.services.items():
-        env_var = f"TREEMUX_{service_name.upper()}_PORT"
+        # ハイフンは環境変数名に使用できないのでアンダースコアに変換
+        env_name = service_name.upper().replace("-", "_")
+        env_var = f"TREEMUX_{env_name}_PORT"
         default_port = svc.base_host_port
         services[service_name] = {
             "ports": [f"${{{env_var}:-{default_port}}}:{svc.container_port}"]
@@ -77,7 +79,8 @@ def build_env_vars(
     """
     env_vars = {"TREEMUX_PROJECT_NAME": project_name}
     for service_name, port in ports.items():
-        env_vars[f"TREEMUX_{service_name.upper()}_PORT"] = str(port)
+        env_name = service_name.upper().replace("-", "_")
+        env_vars[f"TREEMUX_{env_name}_PORT"] = str(port)
     return env_vars
 
 
