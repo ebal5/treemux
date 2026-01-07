@@ -45,7 +45,7 @@ def sample_instance_info() -> InstanceInfo:
         index=0,
         started_at=datetime.now(UTC),
         ports={"web": 8000, "api": 8100},
-        worktree_path=Path("/tmp/test-worktree"),
+        worktree_path=None,  # クロスプラットフォーム対応のためNone
     )
 
 

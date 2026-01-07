@@ -90,7 +90,12 @@ class TestUpCommand:
     """Tests for up command."""
 
     @patch("treemux.cli.get_git_root", return_value=None)
-    def test_no_config_fails(self, _mock_git_root, cli_runner: CliRunner):
+    def test_no_config_fails(
+        self,
+        _mock_git_root,
+        cli_runner: CliRunner,
+        mock_cwd: Path,  # noqa: ARG002
+    ):
         """設定がない場合はエラー"""
         result = cli_runner.invoke(app, ["up", "test"])
 
@@ -168,7 +173,12 @@ class TestDownCommand:
     """Tests for down command."""
 
     @patch("treemux.cli.get_git_root", return_value=None)
-    def test_no_config_fails(self, _mock_git_root, cli_runner: CliRunner):
+    def test_no_config_fails(
+        self,
+        _mock_git_root,
+        cli_runner: CliRunner,
+        mock_cwd: Path,  # noqa: ARG002
+    ):
         """設定がない場合はエラー"""
         result = cli_runner.invoke(app, ["down", "test"])
 
@@ -195,7 +205,12 @@ class TestListCommand:
     """Tests for list command."""
 
     @patch("treemux.cli.get_git_root", return_value=None)
-    def test_empty_list(self, _mock_git_root, cli_runner: CliRunner):
+    def test_empty_list(
+        self,
+        _mock_git_root,
+        cli_runner: CliRunner,
+        mock_cwd: Path,  # noqa: ARG002
+    ):
         """インスタンスがない場合は空メッセージを表示"""
         result = cli_runner.invoke(app, ["list"])
 
@@ -228,7 +243,11 @@ class TestUrlCommand:
     @patch("treemux.cli.get_git_root", return_value=None)
     @patch("treemux.cli.get_current_branch", return_value="test-branch")
     def test_not_running_fails(
-        self, _mock_branch, _mock_git_root, cli_runner: CliRunner
+        self,
+        _mock_branch,
+        _mock_git_root,
+        cli_runner: CliRunner,
+        mock_cwd: Path,  # noqa: ARG002
     ):
         """インスタンスが起動していない場合はエラー"""
         result = cli_runner.invoke(app, ["url", "test"])
@@ -322,7 +341,11 @@ class TestPlaywrightCommand:
     @patch("treemux.cli.get_git_root", return_value=None)
     @patch("treemux.cli.get_current_branch", return_value="test-branch")
     def test_not_running_fails(
-        self, _mock_branch, _mock_git_root, cli_runner: CliRunner
+        self,
+        _mock_branch,
+        _mock_git_root,
+        cli_runner: CliRunner,
+        mock_cwd: Path,  # noqa: ARG002
     ):
         """インスタンスが起動していない場合はエラー"""
         result = cli_runner.invoke(app, ["playwright", "test"])

@@ -3,7 +3,10 @@
 from datetime import datetime
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# 最大インデックス数（0-9の10個）
+MAX_INDEX = 9
 
 
 class ServiceConfig(BaseModel):
@@ -11,6 +14,18 @@ class ServiceConfig(BaseModel):
 
     container_port: int = Field(ge=1, le=65535, description="コンテナ内部ポート")
     base_host_port: int = Field(ge=1024, le=65535, description="ホスト側ベースポート")
+
+    @field_validator("base_host_port")
+    @classmethod
+    def validate_port_overflow(cls, v: int) -> int:
+        """ポートオーバーフローを防止（base_host_port + MAX_INDEX <= 65535）"""
+        max_port = v + MAX_INDEX
+        if max_port > 65535:
+            msg = (
+                f"base_host_port {v} + max index {MAX_INDEX} = {max_port} exceeds 65535"
+            )
+            raise ValueError(msg)
+        return v
 
 
 class SubdomainConfig(BaseModel):

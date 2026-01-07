@@ -64,6 +64,17 @@ class TestServiceConfig:
         with pytest.raises(ValidationError):
             ServiceConfig(container_port=3000, base_host_port=65536)
 
+    def test_base_host_port_overflow_boundary_valid(self):
+        """base_host_port=65526は有効（65526+9=65535）"""
+        config = ServiceConfig(container_port=3000, base_host_port=65526)
+        assert config.base_host_port == 65526
+
+    def test_base_host_port_overflow_invalid(self):
+        """base_host_port=65527は無効（65527+9=65536 > 65535）"""
+        with pytest.raises(ValidationError) as exc_info:
+            ServiceConfig(container_port=3000, base_host_port=65527)
+        assert "exceeds 65535" in str(exc_info.value)
+
 
 class TestInstanceInfo:
     """Tests for InstanceInfo model."""

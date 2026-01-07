@@ -55,7 +55,7 @@ class TestGenerateOverrideContent:
         assert content["services"] == {}
 
     def test_uppercase_service_name_in_env_var(self):
-        """サービス名は環境変数で大文字化される"""
+        """サービス名は環境変数で大文字化され、ハイフンはアンダースコアに変換される"""
         config = TreemuxConfig(
             project_name="test",
             services={
@@ -65,7 +65,7 @@ class TestGenerateOverrideContent:
         content = generate_override_content(config)
 
         ports = content["services"]["my-service"]["ports"]
-        assert "TREEMUX_MY-SERVICE_PORT" in ports[0]
+        assert "TREEMUX_MY_SERVICE_PORT" in ports[0]
 
 
 class TestWriteOverrideFile:
@@ -122,9 +122,9 @@ class TestBuildEnvVars:
         assert env["TREEMUX_API_PORT"] == "8101"
 
     def test_uppercase_conversion(self):
-        """サービス名は大文字化される"""
+        """サービス名は大文字化され、ハイフンはアンダースコアに変換される"""
         env = build_env_vars("project", {"my-service": 9000})
-        assert "TREEMUX_MY-SERVICE_PORT" in env
+        assert "TREEMUX_MY_SERVICE_PORT" in env
 
     def test_empty_ports(self):
         """空のports dictで動作する"""

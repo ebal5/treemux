@@ -82,7 +82,7 @@ class TestSaveState:
         assert result == project_root / ".treemux" / "state.json"
 
     def test_save_datetime_serialization(self, project_root: Path):
-        """datetimeを正しくシリアライズする"""
+        """datetimeを正しくISO8601形式でシリアライズする"""
         test_time = datetime.now(UTC)
         state = TreemuxState(
             instances={
@@ -100,9 +100,15 @@ class TestSaveState:
         with state_path.open() as f:
             data = json.load(f)
 
-        # ISO format: YYYY-MM-DD
-        expected_date = test_time.strftime("%Y-%m-%d")
-        assert expected_date in data["instances"]["test"]["started_at"]
+        # ISO8601形式でパース可能であることを検証
+        serialized = data["instances"]["test"]["started_at"]
+        parsed = datetime.fromisoformat(serialized)
+        # 年月日が一致することを確認（マイクロ秒の差異は許容）
+        assert parsed.year == test_time.year
+        assert parsed.month == test_time.month
+        assert parsed.day == test_time.day
+        assert parsed.hour == test_time.hour
+        assert parsed.minute == test_time.minute
 
     def test_save_path_serialization(self, project_root: Path):
         """Pathを正しくシリアライズする"""
